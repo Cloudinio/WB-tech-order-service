@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 	"log"
+	nethttp "net/http"
+	transporthttp "github.com/Cloudinio/wb-tech-order-service/internal/transport/http"
 	"github.com/Cloudinio/wb-tech-order-service/internal/config"
 	"github.com/Cloudinio/wb-tech-order-service/internal/repository/postgres"
 )
@@ -22,5 +24,15 @@ func main() {
 	defer pool.Close()
 
 	log.Println("postgres connected")
-	log.Println("service started")
+
+	repo := postgres.NewOrderRepository(pool)
+	handler := transporthttp.NewHandler(repo)
+	router := transporthttp.NewRouter(handler)
+
+	addr := ":" + cfg.AppPort
+	log.Printf("http server started on %s", addr)
+
+	if err := nethttp.ListenAndServe(addr, router); err != nil {
+		log.Fatalf("http server failed: %v", err)
+	}
 }
