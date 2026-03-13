@@ -4,9 +4,11 @@ import (
 	"context"
 	"log"
 	nethttp "net/http"
-	transporthttp "github.com/Cloudinio/wb-tech-order-service/internal/transport/http"
+	"github.com/Cloudinio/wb-tech-order-service/internal/cache/memory"
 	"github.com/Cloudinio/wb-tech-order-service/internal/config"
 	"github.com/Cloudinio/wb-tech-order-service/internal/repository/postgres"
+	transporthttp "github.com/Cloudinio/wb-tech-order-service/internal/transport/http"
+	"github.com/Cloudinio/wb-tech-order-service/internal/usecase"
 )
 
 func main() {
@@ -23,10 +25,15 @@ func main() {
 	}
 	defer pool.Close()
 
-	log.Println("postgres connected")
-
 	repo := postgres.NewOrderRepository(pool)
-	handler := transporthttp.NewHandler(repo)
+	cache := memory.NewOrderCache()
+
+	if err := warmupCache(ctx, repo, cache, 100); err != nil {
+		log.Fatalf("warmup cache: %v", err)
+	}
+
+	service := usecase.NewOrderService(repo, cache)
+	handler := transporthttp.NewHandler(service)
 	router := transporthttp.NewRouter(handler)
 
 	addr := ":" + cfg.AppPort
@@ -35,4 +42,26 @@ func main() {
 	if err := nethttp.ListenAndServe(addr, router); err != nil {
 		log.Fatalf("http server failed: %v", err)
 	}
+}
+
+func warmupCache(ctx context.Context, repo *postgres.OrderRepository, cache *memory.OrderCache, batchSize int) error {
+	offset := 0
+
+	for {
+		orders, err := repo.ListRecent(ctx, batchSize, offset)
+		if err != nil {
+			return err
+		}
+
+		if len(orders) == 0 {
+			break
+		}
+
+		cache.Warmup(orders)
+		log.Printf("cache warmup: loaded %d orders", len(orders))
+
+		offset += batchSize
+	}
+
+	return nil
 }

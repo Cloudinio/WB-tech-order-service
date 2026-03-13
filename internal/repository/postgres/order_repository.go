@@ -132,3 +132,40 @@ func (r *OrderRepository) GetByUID(ctx context.Context, orderUID string) (domain
 
 	return buildOrder(or, dr, pr, items), nil
 }
+
+func (r *OrderRepository) ListRecent(ctx context.Context, limit, offset int) ([]domain.Order, error) {
+	rows, err := r.pool.Query(ctx, `
+		SELECT order_uid
+		FROM orders
+		ORDER BY date_created DESC
+		LIMIT $1 OFFSET $2
+	`, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	orderUIDs := make([]string, 0, limit)
+	for rows.Next() {
+		var orderUID string
+		if err := rows.Scan(&orderUID); err != nil {
+			return nil, err
+		}
+		orderUIDs = append(orderUIDs, orderUID)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	orders := make([]domain.Order, 0, len(orderUIDs))
+	for _, orderUID := range orderUIDs {
+		order, err := r.GetByUID(ctx, orderUID)
+		if err != nil {
+			return nil, err
+		}
+		orders = append(orders, order)
+	}
+
+	return orders, nil
+}

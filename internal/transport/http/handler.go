@@ -5,17 +5,17 @@ import (
 	"errors"
 	nethttp "net/http"
 	"github.com/go-chi/chi/v5"
-	"github.com/Cloudinio/wb-tech-order-service/internal/usecase"
 	repopg "github.com/Cloudinio/wb-tech-order-service/internal/repository/postgres"
+	"github.com/Cloudinio/wb-tech-order-service/internal/usecase"
 )
 
 type Handler struct {
-	repo usecase.OrderRepository
+	service usecase.OrderGetter
 }
 
-func NewHandler(repo usecase.OrderRepository) *Handler {
+func NewHandler(service usecase.OrderGetter) *Handler {
 	return &Handler{
-		repo: repo,
+		service: service,
 	}
 }
 
@@ -28,7 +28,7 @@ func (h *Handler) GetOrderByUID(w nethttp.ResponseWriter, r *nethttp.Request) {
 		return
 	}
 
-	order, err := h.repo.GetByUID(r.Context(), orderUID)
+	order, err := h.service.GetByUID(r.Context(), orderUID)
 	if err != nil {
 		if errors.Is(err, repopg.ErrOrderNotFound) {
 			writeJSON(w, nethttp.StatusNotFound, map[string]string{
