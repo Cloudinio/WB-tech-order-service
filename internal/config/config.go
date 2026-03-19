@@ -3,7 +3,7 @@ package config
 import (
 	"fmt"
 	"os"
-
+	"strings"
 	"github.com/joho/godotenv"
 )
 
@@ -56,4 +56,18 @@ func getEnv(key, fallback string) string {
 		return fallback
 	}
 	return val
+}
+
+func (c *Config) KafkaBrokersList() []string {
+	parts := strings.Split(c.KafkaBrokers, ",")
+	result := make([]string, 0, len(parts))
+
+	for _, p := range parts {
+		p = strings.TrimSpace(p)
+		if p != "" {
+			result = append(result, p)
+		}
+	}
+
+	return result
 }

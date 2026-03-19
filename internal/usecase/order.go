@@ -2,30 +2,36 @@ package usecase
 
 import (
 	"context"
-	"log"
 
 	"github.com/Cloudinio/wb-tech-order-service/internal/domain"
+	"github.com/Cloudinio/wb-tech-order-service/internal/metrics"
 )
 
 type OrderService struct {
-	repo  OrderRepository
-	cache OrderCache
+	repo    OrderRepository
+	cache   OrderCache
+	metrics *metrics.Metrics
 }
 
-func NewOrderService(repo OrderRepository, cache OrderCache) *OrderService {
+func NewOrderService(repo OrderRepository, cache OrderCache, metrics *metrics.Metrics) *OrderService {
 	return &OrderService{
-		repo:  repo,
-		cache: cache,
+		repo:    repo,
+		cache:   cache,
+		metrics: metrics,
 	}
 }
 
 func (s *OrderService) GetByUID(ctx context.Context, orderUID string) (domain.Order, error) {
 	if order, ok := s.cache.Get(orderUID); ok {
-		log.Printf("cache hit: %s", orderUID)
+		if s.metrics != nil {
+			s.metrics.CacheHitsTotal.Inc()
+		}
 		return order, nil
 	}
 
-	log.Printf("cache miss: %s", orderUID)
+	if s.metrics != nil {
+		s.metrics.CacheMissesTotal.Inc()
+	}
 
 	order, err := s.repo.GetByUID(ctx, orderUID)
 	if err != nil {

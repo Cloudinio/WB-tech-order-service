@@ -55,3 +55,23 @@ type Item struct {
 	Brand       string
 	Status      int
 }
+
+func (o Order) Validate() error {
+	if o.OrderUID == "" {
+		return ErrEmptyOrderUID
+	}
+
+	if o.TrackNumber == "" {
+		return ErrEmptyTrackNumber
+	}
+
+	if o.Payment.Transaction == "" {
+		return ErrEmptyTransaction
+	}
+
+	if len(o.Items) == 0 {
+		return ErrEmptyItems
+	}
+
+	return nil
+}
