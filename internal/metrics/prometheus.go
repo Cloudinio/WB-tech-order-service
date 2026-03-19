@@ -1,17 +1,21 @@
 package metrics
 
-import "github.com/prometheus/client_golang/prometheus"
+import (
+	"sync"
+
+	"github.com/prometheus/client_golang/prometheus"
+)
+
+var registerOnce sync.Once
 
 type Metrics struct {
 	KafkaMessagesTotal        prometheus.Counter
 	KafkaInvalidMessagesTotal prometheus.Counter
 	KafkaDuplicateMessages    prometheus.Counter
 	KafkaSaveErrorsTotal      prometheus.Counter
-
-	CacheHitsTotal   prometheus.Counter
-	CacheMissesTotal prometheus.Counter
-
-	HTTPRequestTotal *prometheus.CounterVec
+	CacheHitsTotal            prometheus.Counter
+	CacheMissesTotal          prometheus.Counter
+	HTTPRequestTotal          *prometheus.CounterVec
 }
 
 func New() *Metrics {
@@ -30,7 +34,7 @@ func New() *Metrics {
 		}),
 		KafkaSaveErrorsTotal: prometheus.NewCounter(prometheus.CounterOpts{
 			Name: "kafka_save_errors_total",
-			Help: "Total number of Kafka message save errors",
+			Help: "Total number of Kafka save errors",
 		}),
 		CacheHitsTotal: prometheus.NewCounter(prometheus.CounterOpts{
 			Name: "cache_hits_total",
@@ -49,15 +53,17 @@ func New() *Metrics {
 		),
 	}
 
-	prometheus.MustRegister(
-		m.KafkaMessagesTotal,
-		m.KafkaInvalidMessagesTotal,
-		m.KafkaDuplicateMessages,
-		m.KafkaSaveErrorsTotal,
-		m.CacheHitsTotal,
-		m.CacheMissesTotal,
-		m.HTTPRequestTotal,
-	)
+	registerOnce.Do(func() {
+		prometheus.MustRegister(
+			m.KafkaMessagesTotal,
+			m.KafkaInvalidMessagesTotal,
+			m.KafkaDuplicateMessages,
+			m.KafkaSaveErrorsTotal,
+			m.CacheHitsTotal,
+			m.CacheMissesTotal,
+			m.HTTPRequestTotal,
+		)
+	})
 
 	return m
 }
