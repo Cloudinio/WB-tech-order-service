@@ -402,25 +402,3 @@ go test ./...
 ```bash
 go test ./test/integration -v
 ```
-
-## Что можно улучшить дальше
-
-- вынести конфиг в более строгую валидацию
-- добавить DLQ для невалидных Kafka-сообщений
-- добавить более детальные Prometheus-метрики
-- добавить Swagger UI
-- добавить retry/backoff для consumer
-- покрыть больше edge cases тестами
-
-## Итог
-
-Проект реализует небольшой event-driven backend на Go с:
-- Kafka
-- PostgreSQL
-- in-memory cache
-- HTTP API
-- метриками
-- graceful shutdown
-- unit и integration tests
-
-Это учебный, но приближенный к реальному backend-сервису проект.
